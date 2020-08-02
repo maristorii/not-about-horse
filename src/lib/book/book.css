@@ -1,0 +1,85 @@
+.book {
+  display: block;
+  position: relative;
+  --page-aspect-ratio: 1;
+  --active-page-position: 1;
+  --transform-perspective: 900px;
+  --border: none;
+  --border-radius: 0;
+  box-sizing: border-box;
+  border: var(--border);
+  border-color: transparent;
+  border-top: none;
+  border-bottom: none;
+}
+.book::before {
+  content: '';
+  display: block;
+  width: 0;
+  padding-bottom: calc(50% / var(--page-aspect-ratio));
+  margin: 0 auto;
+  box-sizing: content-box;
+  border: var(--border);
+}
+.book__page {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  box-sizing: content-box;
+  z-index: 1;
+  width: 50%;
+  pointer-events: none;
+
+  background-color: white;
+
+  border: var(--border);
+  overflow: hidden;
+  --b-radius-h: var(--border-radius);
+  --b-radius-v: calc(var(--b-radius-h) * var(--page-aspect-ratio));
+  border-radius: var(--b-radius-h)/var(--b-radius-v);
+}
+.book__page:nth-child(odd) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+}
+.book__page:nth-child(even) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+.book__page_visible {
+  display: block;
+}
+.book__page_previous,
+.book__page_next {
+  opacity: 0;
+}
+.book__page_current,
+.book__page_future {
+  opacity: 1;
+  z-index: 2;
+}
+.book__page_active {
+  z-index: 3;
+}
+
+.book_active-side_left .book__page_first-active,
+.book_active-side_right .book__page_second-active {
+  opacity: 0;
+}
+.book__page:nth-child(odd) {
+  left: 50%;
+  transform-origin: left;
+}
+.book__page:nth-child(even) {
+  right: 50%;
+  transform-origin: right;
+}
+.book__page_active:nth-child(odd) {
+  transform: perspective(var(--transform-perspective)) rotateY(calc(-90deg + var(--active-page-position) * 90deg));
+}
+.book__page_active:nth-child(even) {
+  transform: perspective(var(--transform-perspective)) rotateY(calc(90deg + var(--active-page-position) * 90deg));
+}

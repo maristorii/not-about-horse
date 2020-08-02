@@ -1,0 +1,221 @@
+html {
+  --page-aspect-ratio: calc(1504/1622);
+}
+.book {
+  --page-aspect-ratio: calc(1504/1622);
+  --border: 2px solid #ddd;
+  --border-radius: 4%;
+}
+.book__img {
+  width: 100%;
+}
+.book__page {
+  background-color: #ddd;
+  line-height: 0;
+}
+
+.content {
+  position: relative;
+}
+.content__book {
+  width: 100%;
+}
+.content__hint {
+  position: absolute;
+  top: 5%;
+  left: 0;
+  width: 50%;
+  clip-path: circle(45% at 48% 45%);
+}
+.content__hint-video {
+  width: 100%;
+}
+
+html {
+  height: 100%;
+  --page-aspect-ratio: calc(1504/1622);
+}
+
+.body {
+  --links-size: 80px;
+  --body-margin: 8px;
+  --links-margin: 8px;
+  --links-self-margin: 60px;
+  overflow: hidden;
+  margin: 0;
+  height: 100%;
+  display: flex;
+}
+.content {
+  width: calc(100% - var(--body-margin) * 2);
+  max-width: calc((100vh - var(--body-margin) * 2 - var(--links-size) - var(--links-margin)) * var(--page-aspect-ratio) * 2);
+  margin: auto auto;
+}
+.content__links {
+  margin: var(--links-margin) auto 0;
+  width: 100%;
+}
+
+.body_hide-links {
+  --links-size: 0px;
+}
+
+.body_hide-links .content__links {
+  display: none;
+}
+
+.links {
+  width: 100%;
+  min-width: 300px;
+  display: flex;
+  justify-content: center;
+}
+.links__item {
+  display: block;
+  position: relative;
+  top: 0;
+  flex-shrink: 1;
+  height: 80px;
+  box-sizing: content-box;
+  width: calc(var(--links-size) * var(--aspect-ratio));
+  opacity: 0.66;
+  transition: transform 0.25s;
+  background-size: 100% auto;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+.links__item:hover,
+.links__item:active,
+.links__item:focus {
+  outline: none;
+  opacity: 1;
+  transform: translateY(-3px);
+}
+.links__item:active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: transform 0.02s;
+}
+.links__item:not(:first-child) {
+  margin-left: var(--links-margin);
+}
+.links__item_type_insta {
+  background-image: url(img/insta_400.png);
+  --aspect-ratio: calc(400 / 97);
+}
+.links__item_type_home {
+  background-image: url(img/home_128.png);
+  --aspect-ratio: calc(128 / 95);
+}
+.links__item_type_lang {
+  --aspect-ratio: calc(1020 / 460);
+}
+.links__item_type_lang.lang-link_lang_ru {
+  background-image: url(img/lang-ru.png);
+}
+.links__item_type_lang.lang-link_lang_tat {
+  background-image: url(img/lang-tat.png);
+}
+.lang-link:hover {
+  transform: none;
+}
+
+.fullscreen-button {
+  display: none;
+  border: none;
+  background: none;
+  padding: 0;
+  -webkit-appearance: none;
+
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 50px;
+  height: 50px;
+  z-index: 100;
+
+  background-image: url(img/full_50.png);
+}
+.body:fullscreen .fullscreen-button,
+.body_fullscreen .fullscreen-button {
+  background-image: url(img/unfull_50.png);
+}
+
+.body:fullscreen,
+.body_fullscreen {
+  --links-size: 0;
+  --body-margin: 16px;
+  --links-margin: 0;
+  --links-self-margin: 0;
+}
+.body:fullscreen .links,
+.body_fullscreen .links {
+  display: none;
+}
+
+.body_canBeFullscreen .fullscreen-button {
+  display: block;
+}
+
+.loading {
+  display: none;
+  position: absolute;
+  width: 100%;
+  left: 0;
+  top: 48%;
+  line-height: 1;
+  font-size: 100%;
+  /* z-index: -1; */
+  height: 4%;
+  text-align: center;
+}
+.loading::before {
+  display: inline;
+  content: "Загрузка";
+}
+
+.book__page {
+  overflow: initial;
+}
+.book__img {
+  overflow: hidden;
+}
+.book__text-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.book__page:nth-child(odd) .book__img {
+  border-radius: var(--b-radius-h) / var(--b-radius-v);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.book__page:nth-child(even) .book__img {
+  border-radius: var(--b-radius-h) / var(--b-radius-v);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.book__page.book__page .book__spread {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  border-radius: calc(var(--b-radius-h) / 2) / var(--b-radius-v);
+}
+.book_active-side_left .book__page_first-active,
+.book_active-side_right .book__page_second-active,
+.book_active-side_left .book__spread,
+.book_active-side_right .book__spread {
+  display: none;
+}
+.book_active-side_left .book__spread,
+.book_active-side_right .book__spread {
+  display: none;
+}
+
+/* .book__page:nth-child(2n) > * {
+  margin-right: -1px;
+} */

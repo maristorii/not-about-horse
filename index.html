@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/my.css">
+  <link rel="stylesheet" href="src/lib/book/book.css">
+  <style>
+    .book__img {
+      width: 100%;
+      height: 100%;
+    }
+    .book {
+      --border: 1px solid #ddd;
+      --border-radius: 6%;
+    }
+    .book__page {
+      line-height: 0;
+    }
+
+    .content {
+      position: relative;
+    }
+    .content__book {
+      width: 100%;
+    }
+    .content__hint {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 50%;
+    }
+    .content__hint-video {
+      width: 100%;
+      background-color: white;
+    }
+  </style>
+  <script type="text/javascript" src="src/lib/book/Book.js"></script>
+  <script defer>
+    let pages;
+    let book;
+    let control;
+
+    const onPageVisibilityChange = ({ detail: { index, visible } }) => {
+      if (!visible) {
+        return;
+      }
+
+      const { onceOpened, video, image } = pages[index];
+
+      if (onceOpened) {
+        return;
+      }
+
+      pages[index].onceOpened = true;
+
+      if (video) {
+        video.removeAttribute('preload');
+        video.load();
+      }
+
+      if (image) {
+        image.setAttribute('src', image.dataset.src);
+      }
+    };
+
+    const tryToPlay = () => {
+      if (!book) {
+        return;
+      }
+
+      const currentPage = book.currentPage;
+      const visiblePages = book.visiblePages;
+
+      visiblePages.forEach(pageIndex => {
+        const page = pages[pageIndex];
+        if (!page.video || page.isDependant || !page.video.readyState === 4 || page.played) {
+          return;
+        }
+
+        const isCurrent = pageIndex === currentPage || pageIndex === (currentPage + 1);
+
+        if (!page.dependantVideo) {
+          if (isCurrent || (page.video.loop && book.isPageTurning)) {
+            page.video.play();
+            page.played = true;
+          }
+
+          return;
+        }
+
+        if (!page.dependantVideo.readyState === 4) {
+          return;
+        }
+
+        if (isCurrent || (page.video.loop && book.isPageTurning)) {
+          page.video.play();
+          page.dependantVideo.play();
+          page.played = true;
+        }
+      });
+    };
+
+    const syncDependencies = () => {
+      book.visiblePages.forEach(pageIndex => {
+        const page = pages[pageIndex];
+        if (!page.video || !page.dependantVideo || !page.played) {
+          return;
+        }
+
+        if (Math.abs(page.video.currentTime - page.dependantVideo.currentTime) < 0.05) {
+          return;
+        }
+
+        page.dependantVideo.currentTime = page.video.currentTime;
+        page.video.currentTime = page.dependantVideo.currentTime;
+      });
+    };
+
+    const onVideoReady = event => {
+      tryToPlay();
+    };
+
+    const onCurrentPageChange = ({ detail: { currentPage, previousPage } }) => {
+      if (currentPage === previousPage) {
+        return;
+      }
+
+      tryToPlay();
+      [previousPage, previousPage + 1].forEach(pageIndex => {
+        const page = pages[pageIndex];
+
+        if (!page || !page.video || page.isDependant || !page.video.readyState === 4) {
+          return;
+        }
+
+        page.video.pause();
+        page.video.currentTime = 0;
+        page.played = false;
+
+        if (!page.dependantVideo || !page.dependantVideo.readyState === 4) {
+          return;
+        }
+
+        page.dependantVideo.pause();
+        page.dependantVideo.currentTime = 0;
+      });
+    };
+
+    window.onload = () => {
+      const bookDomElement = document.getElementById('book');
+
+      pages = Array.from(bookDomElement.getElementsByClassName('book__page'))
+        .map((page, pageIndex) => ({
+          video: page.getElementsByTagName('video')[0],
+          image: page.getElementsByTagName('img')[0],
+          onceOpened: false,
+          pageIndex,
+          played: false,
+        }))
+      ;
+
+      let controlPageIndex;
+      pages.forEach(({ video, pageIndex }) => {
+        if (!video) {
+          return;
+        }
+
+        video.$pageIndex = pageIndex;
+
+        if (video.dataset.dependant) {
+          pages[pageIndex].isDependant = true;
+        }
+
+        if (video.dataset.leadof) {
+          pages[pageIndex].dependantVideo = document.getElementById(video.dataset.leadof);
+        }
+
+        if (video.id === 'control-video') {
+          controlPageIndex = pageIndex;
+        }
+
+        video.addEventListener('canplaythrough', onVideoReady);
+      });
+
+      bookDomElement.addEventListener('pageVisibilityChange', onPageVisibilityChange);
+      bookDomElement.addEventListener('currentPageChange', onCurrentPageChange);
+      book = new Book(bookDomElement);
+
+      setInterval(syncDependencies, 500);
+    };
+  </script>
+</head>
+<body class="body">
+  <div class="content">
+    <div class="content__hint">
+      <video class="content__hint-video" autoplay="autoplay" loop="loop" muted="muted" playsinline="playsinline">
+        <source src="pages/hint.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+      </video>
+    </div>
+    <div class="book content__book" id="book">
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/1.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/2.jpg" />
+      </div>
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/3.jpg" />
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/4.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/5.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/6.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/7.jpg" />
+      </div>
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/8.jpg" />
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/9.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/10.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/11.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <!-- <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-leadof="fish-r">
+          <source src="pages/IMG-0402.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-dependant="true" id="fish-r">
+          <source src="pages/IMG-0401.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-leadof="cat-r">
+          <source src="pages/IMG-0647.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-dependant="true" id="cat-r">
+          <source src="pages/IMG-0648.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div> -->
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/12.jpg" />
+      </div>
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/13.jpg" />
+      </div>
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/stars-story_0_1.jpg" />
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/stars-story_0_2.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/stars-story_1_1.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/stars-story_1_2.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/stars-story_2_1.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/stars-story_2_2.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/stars-story_3_1.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/stars-story_3_2.png" />
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/stars-story_4_1.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/stars-story_4_2.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-leadof="stars-story_5_2">
+          <source src="pages/stars-story_5_1.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-dependant="true" id="stars-story_5_2">
+          <source src="pages/stars-story_5_2.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/bear-on-a-visit_0L.jpg" />
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/bear-on-a-visit_0R.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none">
+          <source src="pages/bear-on-a-visit_1L.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <img class="book__img" src="" data-src="pages/bear-on-a-visit_1R.jpg" />
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-leadof="bear-on-a-visit_2R">
+          <source src="pages/bear-on-a-visit_2L.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-dependant="true" id="bear-on-a-visit_2R">
+          <source src="pages/bear-on-a-visit_2R.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-leadof="bear-on-a-visit_3R">
+          <source src="pages/bear-on-a-visit_3L.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-dependant="true" id="bear-on-a-visit_3R">
+          <source src="pages/bear-on-a-visit_3R.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-leadof="bear-on-a-visit_4R">
+          <source src="pages/bear-on-a-visit_4L.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+      <div class="book__page">
+        <video class="book__img" loop="loop" muted="muted" playsinline="playsinline" preload="none" data-dependant="true" id="bear-on-a-visit_4R">
+          <source src="pages/bear-on-a-visit_4R.mp4" type='video/mp4; codecs="avc1.42E01E, mp4a.40.2"'>
+        </video>
+      </div>
+    </div>
+    <div class="links content__links">
+      <a
+        href="https://www.instagram.com/maristorii/"
+        target="_blank"
+        class="links__item links__item_type_insta"
+        title="Instagram: maristorii"
+      ></a>
+      <a
+        href="https://www.facebook.com/m.tsarenok"
+        target="_blank"
+        class="links__item links__item_type_fb"
+        title="Facebook: m.tsarenok"
+      ></a>
+      <a
+        href="mailto:maristorii@ya.ru"
+        target="_blank"
+        class="links__item links__item_type_mail"
+        title="Почта: maristorii@ya.ru"
+      ></a>
+    </div>
+  </div>
+
+
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript" >
+    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+    m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+    (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+    ym(55540834, "init", {
+      clickmap:true,
+      trackLinks:true,
+      accurateTrackBounce:true
+    });
+  </script>
+  <noscript>
+    <div><img src="https://mc.yandex.ru/watch/55540834" style="position:absolute; left:-9999px;" alt="" /></div>
+  </noscript>
+  <!-- /Yandex.Metrika counter -->
+</body>
+</html>
